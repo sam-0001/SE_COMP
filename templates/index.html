@@ -6,7 +6,7 @@
     <title>ExamSuccess</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="icon" href="../image.png">
+    <link rel="icon" href="{{ url_for('static', filename='image.png') }}">
 </head>
 <body>
 
@@ -15,9 +15,9 @@
             <nav>
                 <div class="logo">📘 SE Notes Store</div>
                 <div class="nav-links">
-    <a href="{{ url_for('index') }}#comp-ds">Notes</a>
-    <a href="{{ url_for('about') }}">About & Support</a>
-</div>
+                    <a href="{{ url_for('index') }}#comp-ds">Notes</a>
+                    <a href="{{ url_for('about') }}">About & Support</a>
+                </div>
             </nav>
         </div>
     </header>
