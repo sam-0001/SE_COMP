@@ -4,35 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bundle Details | ExamSuccess</title>
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* Extra styles for the download buttons */
+        /* Styles for download buttons and inputs */
         .download-btn {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #f1f2f6;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            text-decoration: none;
-            color: #2d3436;
-            font-weight: 600;
-            border: 2px solid transparent;
-            transition: all 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: #f1f2f6; padding: 15px; border-radius: 8px;
+            margin-bottom: 10px; text-decoration: none; color: #2d3436;
+            font-weight: 600; border: 2px solid transparent; transition: all 0.2s;
         }
         .download-btn:hover {
-            background-color: #e1f5fe;
-            border-color: #6c5ce7;
-            color: #6c5ce7;
+            background-color: #e1f5fe; border-color: #6c5ce7; color: #6c5ce7;
         }
         .locked-file {
-            opacity: 0.6;
-            cursor: not-allowed;
-            background-color: #eee;
+            opacity: 0.6; cursor: not-allowed; background-color: #eee;
         }
         .icon { font-size: 1.2rem; }
+        
+        /* Input Field Styling */
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2d3436; }
+        .input-group input { 
+            width: 100%; padding: 12px; border: 2px solid #dfe6e9; 
+            border-radius: 8px; font-size: 1rem; transition: border-color 0.2s;
+        }
+        .input-group input:focus { border-color: #6c5ce7; outline: none; }
     </style>
 </head>
 <body>
@@ -40,7 +37,7 @@
     <header>
         <div class="container">
             <nav>
-                <div class="logo"><a href="index.html">⚡ ExamSuccess</a></div>
+                <div class="logo"><a href="{{ url_for('index') }}">⚡ ExamSuccess</a></div>
             </nav>
         </div>
     </header>
@@ -55,28 +52,41 @@
             </div>
         </div>
 
-        <h1 id="bundle-name" style="font-size: 2.5rem; margin-bottom: 10px;">Loading...</h1>
+        <h1 id="bundle-name" style="font-size: 2.5rem; margin-bottom: 10px;">
+            {% if product %}{{ product.name }}{% else %}Loading Bundle...{% endif %}
+        </h1>
+        
         <p style="color: #636e72; margin-bottom: 30px;">
             Get instant access to the most comprehensive notes available. 
-            Once purchased, the download buttons will appear below.
+            Enter your email below to unlock or resume your access.
         </p>
 
         <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow);">
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <span style="font-size: 1.1rem; font-weight: bold;">Included Files:</span>
-                <span class="card-price" id="bundle-price">...</span>
+                <span class="card-price" id="bundle-price">
+                    {% if product %}₹{{ (product.price / 100) | int }}{% else %}...{% endif %}
+                </span>
             </div>
 
             <div id="file-container">
-                </div>
+                <p style="text-align:center; color:#888;">Fetching file list...</p>
+            </div>
 
             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
             <div id="action-area">
+                
+                <div class="input-group">
+                    <label for="user-email">Enter Email (For Access Link):</label>
+                    <input type="email" id="user-email" placeholder="student@example.com">
+                </div>
+
                 <button id="pay-btn" class="btn btn-primary full-width" style="padding: 18px; font-size: 1.1rem;">
-                    🔒 Unlock Notes Now
+                    🔒 Check Access / Unlock
                 </button>
+                
                 <p style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #b2bec3;">
                     Secured by Razorpay • 100% Safe Payment
                 </p>
@@ -85,112 +95,179 @@
     </div>
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script>
-    const params = new URLSearchParams(window.location.search);
-    const bundleId = params.get('id') || 'ds';
+    
+    <script>
+        // 1. Setup Variables
+        const params = new URLSearchParams(window.location.search);
+        const bundleId = params.get('id') || '{{ bundle_id or "ds" }}';
+        
+        const fileContainer = document.getElementById('file-container');
+        let loadedFiles = [];
+        let secureToken = null; 
 
-    const fileContainer = document.getElementById('file-container');
-    let loadedFiles = [];
-    let secureToken = null; // Stores the JWT after payment
+        // 2. Load File List (Initially Locked)
+        async function loadFiles() {
+            try {
+                const res = await fetch(`/api/files/${bundleId}`);
+                const data = await res.json();
+                
+                if(data.error) {
+                    fileContainer.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
+                    return;
+                }
 
-    // 1. Load Files (Locked State)
-    async function loadFiles() {
-        try {
-            const res = await fetch(`/api/files/${bundleId}`);
-            const data = await res.json();
-            loadedFiles = data.files || [];
-            
-            // Set Titles (Optional: Fetch real names from backend)
-            document.getElementById('bundle-name').textContent = "Secure Notes Bundle";
-            
-            renderLockedState();
-        } catch (e) { console.error(e); }
-    }
+                loadedFiles = data.files || [];
+                renderLockedState();
+            } catch (e) { 
+                console.error(e);
+                fileContainer.innerHTML = `<p style="color:red; text-align:center;">Error loading files.</p>`;
+            }
+        }
 
-    // 2. Render Locked
-    function renderLockedState() {
-        fileContainer.innerHTML = '';
-        loadedFiles.forEach(file => {
-            fileContainer.innerHTML += `
-                <div class="download-btn locked-file">
-                    <span>📄 ${file.name}</span>
-                    <span style="font-size:0.8rem">🔒 Locked</span>
+        // 3. Render Locked View
+        function renderLockedState() {
+            if(loadedFiles.length === 0) {
+                fileContainer.innerHTML = '<p style="text-align:center;">No files found in this bundle.</p>';
+                return;
+            }
+            fileContainer.innerHTML = '';
+            loadedFiles.forEach(file => {
+                fileContainer.innerHTML += `
+                    <div class="download-btn locked-file">
+                        <span>📄 ${file.name}</span>
+                        <span style="font-size:0.8rem">🔒 Locked</span>
+                    </div>`;
+            });
+        }
+
+        // 4. Render Unlocked View (Download Buttons)
+        function renderUnlockedState() {
+            fileContainer.innerHTML = '';
+            loadedFiles.forEach(file => {
+                const secureLink = `/download/${file.id}?token=${secureToken}`;
+                
+                fileContainer.innerHTML += `
+                    <a href="${secureLink}" class="download-btn" target="_blank">
+                        <span>📄 ${file.name}</span>
+                        <span class="icon">⬇️</span>
+                    </a>`;
+            });
+
+            // Replace Input Form with Success Message
+            document.getElementById('action-area').innerHTML = `
+                <div style="text-align:center; padding:20px; background:#f0fff4; border:1px solid #27ae60; border-radius:8px;">
+                    <h3 style="color:#27ae60; margin-bottom:5px;">✅ Access Granted!</h3>
+                    <p style="color:#555; font-size:0.9rem;">Your access is valid for 2 hours.</p>
                 </div>`;
-        });
-    }
+        }
 
-    // 3. Render Unlocked (With Token)
-    function renderUnlockedState() {
-        fileContainer.innerHTML = '';
-        loadedFiles.forEach(file => {
-            // Append the token to the download URL
-            const secureLink = `/download/${file.id}?token=${secureToken}`;
-            
-            fileContainer.innerHTML += `
-                <a href="${secureLink}" class="download-btn">
-                    <span>📄 ${file.name}</span>
-                    <span class="icon">⬇️</span>
-                </a>`;
-        });
+        // 5. Main Logic: Check Access -> Pay
+        document.getElementById('pay-btn').addEventListener('click', async () => {
+            const emailField = document.getElementById('user-email');
+            const userEmail = emailField.value.trim().toLowerCase(); 
+            const btn = document.getElementById('pay-btn');
 
-        document.getElementById('action-area').innerHTML = `
-            <div style="text-align:center; color: #27ae60; font-weight:bold; padding:10px;">
-                ✅ Payment Successful! Access valid for 2 hours.
-            </div>`;
-    }
+            // Validation
+            if (!userEmail || !userEmail.includes('@')) {
+                alert("Please enter a valid email address.");
+                emailField.focus();
+                emailField.style.borderColor = "red";
+                return;
+            }
 
-    // 4. RAZORPAY PAYMENT LOGIC
-    document.getElementById('pay-btn').addEventListener('click', async () => {
-        // A. Ask Backend to Create Order
-        const res = await fetch('/create_order', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ bundle_id: bundleId })
-        });
-        const orderData = await res.json();
+            btn.innerText = "Checking Access...";
+            btn.disabled = true;
 
-        if (orderData.error) { alert(orderData.error); return; }
-
-        // B. Open Razorpay Options
-        const options = {
-            "key": orderData.key_id,
-            "amount": orderData.amount,
-            "currency": "INR",
-            "name": "ExamSuccess Notes",
-            "description": "Premium Notes Bundle",
-            "order_id": orderData.order_id,
-            "handler": async function (response) {
-                // C. Verify Payment on Backend
-                const verifyRes = await fetch('/verify_payment', {
+            // A. CHECK MONGODB FOR EXISTING ACCESS
+            try {
+                const checkRes = await fetch('/check_access', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_signature: response.razorpay_signature,
-                        bundle_id: bundleId
-                    })
+                    body: JSON.stringify({ email: userEmail, bundle_id: bundleId })
                 });
+                const checkData = await checkRes.json();
 
-                const verifyData = await verifyRes.json();
-                
-                if (verifyData.status === 'success') {
-                    // D. Save Token & Unlock
-                    secureToken = verifyData.token;
+                if (checkData.status === 'active') {
+                    // Success! Unlock immediately without payment
+                    secureToken = checkData.token;
                     renderUnlockedState();
-                } else {
-                    alert("Payment verification failed!");
+                    alert(checkData.message);
+                    return; 
                 }
-            },
-            "theme": { "color": "#6c5ce7" }
-        };
+            } catch (e) {
+                console.error("Error checking access", e);
+            }
 
-        const rzp1 = new Razorpay(options);
-        rzp1.open();
-    });
+            // B. START PAYMENT (If no access found)
+            btn.innerText = "Processing Order...";
 
-    loadFiles();
-</script>
+            // Create Order on Backend
+            const res = await fetch('/create_order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ bundle_id: bundleId })
+            });
+            const orderData = await res.json();
+
+            if (orderData.error) { 
+                alert(orderData.error); 
+                btn.innerText = "🔒 Check Access / Unlock";
+                btn.disabled = false;
+                return; 
+            }
+
+            // Open Razorpay Popup
+            const options = {
+                "key": orderData.key_id,
+                "amount": orderData.amount,
+                "currency": "INR",
+                "name": "ExamSuccess Notes",
+                "description": "Premium Notes Bundle",
+                "order_id": orderData.order_id,
+                "prefill": { "email": userEmail }, // Auto-fill email
+                "handler": async function (response) {
+                    btn.innerText = "Verifying...";
+                    
+                    // Verify Payment & Save to MongoDB
+                    const verifyRes = await fetch('/verify_payment', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            bundle_id: bundleId,
+                            user_email: userEmail 
+                        })
+                    });
+
+                    const verifyData = await verifyRes.json();
+                    
+                    if (verifyData.status === 'success') {
+                        secureToken = verifyData.token;
+                        renderUnlockedState();
+                    } else {
+                        alert("Payment verification failed! Contact support.");
+                        btn.innerText = "🔒 Check Access / Unlock";
+                        btn.disabled = false;
+                    }
+                },
+                "modal": {
+                    "ondismiss": function(){
+                        btn.innerText = "🔒 Check Access / Unlock";
+                        btn.disabled = false;
+                    }
+                },
+                "theme": { "color": "#6c5ce7" }
+            };
+
+            const rzp1 = new Razorpay(options);
+            rzp1.open();
+        });
+
+        // Initialize Page
+        loadFiles();
+    </script>
 
 </body>
 </html>
