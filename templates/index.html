@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SE Engineering Notes Store</title>
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -35,17 +35,18 @@
         <div class="bundle-grid">
             
             <div class="card">
-    <div class="card-header" style="background: #e3f2fd;">🧩</div> <div class="card-body">
-        <h3 class="card-title">Data Structures (DS)</h3>
-        <div class="card-price">₹19</div>
-        <ul class="card-features">
-            <li>Linked Lists, Trees & Graphs</li>
-            <li>Sorting & Searching Algos</li>
-            <li>Lab Practical Codes (C/C++)</li>
-        </ul>
-        <a href="bundle.html?id=ds" class="btn btn-primary full-width">Buy Now</a>
-    </div>
-</div>
+                <div class="card-header" style="background: #e3f2fd;">🧩</div> 
+                <div class="card-body">
+                    <h3 class="card-title">Data Structures (DS)</h3>
+                    <div class="card-price">₹19</div>
+                    <ul class="card-features">
+                        <li>Linked Lists, Trees & Graphs</li>
+                        <li>Sorting & Searching Algos</li>
+                        <li>Lab Practical Codes (C/C++)</li>
+                    </ul>
+                    <a href="{{ url_for('bundle', id='ds') }}" class="btn btn-primary full-width">Buy Now</a>
+                </div>
+            </div>
 
             <div class="card">
                 <div class="card-header" style="background: #e1f5fe;">💻</div>
@@ -57,7 +58,7 @@
                         <li>Computer Graphics (C++)</li>
                         <li>Lab Practical Codes</li>
                     </ul>
-                    <a href="bundle.html?id=oop_cg" class="btn btn-primary full-width">Buy Now</a>
+                    <a href="{{ url_for('bundle', id='oop_cg') }}" class="btn btn-primary full-width">Buy Now</a>
                 </div>
             </div>
 
@@ -71,7 +72,7 @@
                         <li>Deadlocks & Memory Mgmt</li>
                         <li>Shell Scripting Notes</li>
                     </ul>
-                    <a href="bundle.html?id=os" class="btn btn-primary full-width">Buy Now</a>
+                    <a href="{{ url_for('bundle', id='os') }}" class="btn btn-primary full-width">Buy Now</a>
                 </div>
             </div>
 
@@ -85,7 +86,7 @@
                         <li>K-Maps & Counters</li>
                         <li>Processor Architecture</li>
                     </ul>
-                    <a href="bundle.html?id=deld" class="btn btn-primary full-width">Buy Now</a>
+                    <a href="{{ url_for('bundle', id='deld') }}" class="btn btn-primary full-width">Buy Now</a>
                 </div>
             </div>
 
@@ -99,11 +100,11 @@
                         <li>Professional Ethics</li>
                         <li>Module-wise Summary</li>
                     </ul>
-                    <a href="bundle.html?id=uhvpe" class="btn btn-primary full-width">Buy Now</a>
+                    <a href="{{ url_for('bundle', id='uhvpe') }}" class="btn btn-primary full-width">Buy Now</a>
                 </div>
             </div>
 
-             <div class="card">
+            <div class="card">
                 <div class="card-header" style="background: #ffebee;">📈</div>
                 <div class="card-body">
                     <h3 class="card-title">DM (Digital Marketing)</h3>
@@ -113,7 +114,7 @@
                         <li>Social Media Marketing</li>
                         <li>Bonus: Case Studies</li>
                     </ul>
-                    <a href="bundle.html?id=dm" class="btn btn-primary full-width">Buy Now</a>
+                    <a href="{{ url_for('bundle', id='dm') }}" class="btn btn-primary full-width">Buy Now</a>
                 </div>
             </div>
 
