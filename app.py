@@ -208,6 +208,11 @@ def download_file(file_id):
         return send_file(file_stream, as_attachment=True, download_name=file_name)
     except Exception as e:
         return f"Error: {e}", 500
+    
+# --- ROUTE: About & Policy Page ---
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
