@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About & Support | ExamSuccess</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        .policy-section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .policy-section h2 { color: #2d3436; margin-bottom: 15px; border-bottom: 2px solid #f1f2f6; padding-bottom: 10px; }
+        .policy-section p { line-height: 1.6; color: #636e72; margin-bottom: 15px; }
+        .contact-box {
+            background: #e1f5fe;
+            border: 1px solid #b3e5fc;
+            padding: 20px;
+            border-radius: 8px;
+            color: #0277bd;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo"><a href="{{ url_for('index') }}">⚡ ExamSuccess</a></div>
+                <div class="nav-links">
+                    <a href="{{ url_for('index') }}">Home</a>
+                    <a href="{{ url_for('about') }}">About & Support</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container" style="margin-top: 50px; max-width: 800px;">
+        
+        <h1 style="text-align: center; margin-bottom: 40px;">About & Policies</h1>
+
+        <div class="policy-section">
+            <h2>👋 About Us</h2>
+            <p>
+                Welcome to <strong>ExamSuccess</strong>. We are a group of engineering students and toppers 
+                dedicated to providing high-quality, concise, and exam-oriented notes for Engineering.
+            </p>
+            <p>
+                Our goal is simple: To help you pass your exams with confidence by providing resources 
+                that cut through the clutter and focus on what really matters.
+            </p>
+        </div>
+
+        <div class="policy-section">
+            <h2>🚫 Non-Refundable Policy</h2>
+            <p>
+                <strong>Please Read Carefully:</strong> Due to the nature of digital products, all sales are final.
+            </p>
+            <p>
+                Once a bundle is unlocked, we cannot offer refunds, exchanges, or cancellations. 
+                Unlike physical goods, digital notes cannot be "returned." 
+                Please review the "Included Files" list on the bundle page carefully before making a purchase.
+            </p>
+        </div>
+
+        <div class="policy-section">
+            <h2>🔒 We Respect Your Privacy</h2>
+            <p>
+                We value your trust. Here is how we handle your data:
+            </p>
+            <ul>
+                <li><strong>No Spam:</strong> We will never sell your email address to third parties.</li>
+                <li><strong>Data Usage:</strong> Your email is used strictly to create your secure access link and send you a backup login.</li>
+                <li><strong>Data Retention:</strong> Your access data is automatically deleted from our system after your 2-hour access window expires.</li>
+            </ul>
+        </div>
+
+        <div class="policy-section">
+            <h2>📞 Contact Us</h2>
+            <p>
+                Facing an issue with your download? Have a suggestion for a new subject? 
+                Reach out to us!
+            </p>
+            <div class="contact-box">
+                📧 Email: <a href="mailto:support@examsuccess.com">sohamchaudhari911@gmail.com"</a>
+            </div>
+            <p style="margin-top: 15px; font-size: 0.9rem;">
+                (We usually reply within 2-4 hours during exam days)
+            </p>
+        </div>
+
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 SE Notes Store. Made for Engineers.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
