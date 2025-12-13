@@ -1,0 +1,226 @@
+/* --- RESET & VARIABLES --- */
+:root {
+    --primary: #6c5ce7; /* Modern Purple */
+    --primary-dark: #5a4ad1;
+    --secondary: #00cec9; /* Teal for accents */
+    --dark: #2d3436;
+    --light: #dfe6e9;
+    --bg-color: #f9fbfc;
+    --white: #ffffff;
+    --danger: #ff7675;
+    --shadow: 0 10px 20px rgba(0,0,0,0.08);
+    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-color);
+    color: var(--dark);
+    line-height: 1.6;
+}
+
+a { text-decoration: none; color: inherit; }
+ul { list-style: none; }
+
+/* --- LAYOUT UTILS --- */
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* --- HEADER --- */
+header {
+    background: var(--white);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+}
+
+.nav-links a {
+    margin-left: 20px;
+    font-weight: 500;
+    color: var(--dark);
+    transition: color 0.3s;
+}
+
+.nav-links a:hover { color: var(--primary); }
+
+/* --- HERO SECTION --- */
+.hero {
+    background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+    color: var(--white);
+    padding: 80px 0;
+    text-align: center;
+    border-radius: 0 0 50% 50% / 4%; /* Subtle curve at bottom */
+    margin-bottom: 50px;
+}
+
+.hero h1 {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    font-weight: 800;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto 30px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 30px;
+    border-radius: 30px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-white {
+    background: var(--white);
+    color: var(--primary);
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* --- PRODUCTS GRID --- */
+.section-title {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 2rem;
+    color: var(--dark);
+}
+
+.bundle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    padding-bottom: 60px;
+}
+
+.card {
+    background: var(--white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.03);
+}
+
+.card:hover {
+    transform: translateY(-10px);
+}
+
+.card-header {
+    background: #f1f2f6;
+    padding: 40px 20px;
+    text-align: center;
+    font-size: 3rem;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.card-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.card-price {
+    font-size: 1.8rem;
+    color: var(--primary);
+    font-weight: 800;
+    margin-bottom: 15px;
+}
+
+.card-features {
+    margin-bottom: 20px;
+    color: #636e72;
+    font-size: 0.95rem;
+}
+
+.card-features li {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.card-features li::before {
+    content: "✓";
+    color: var(--secondary);
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.full-width { width: 100%; text-align: center; }
+
+/* --- BUNDLE DETAIL PAGE SPECIFICS --- */
+.warning-box {
+    background-color: #ffeaa7;
+    color: #d35400;
+    padding: 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 25px;
+    border: 1px solid #fdcb6e;
+}
+
+/* --- FOOTER --- */
+footer {
+    background: var(--dark);
+    color: #b2bec3;
+    text-align: center;
+    padding: 40px 0;
+    margin-top: 50px;
+}
+
+/* --- COMING SOON BADGES --- */
+.badge {
+    background-color: #dfe6e9;
+    color: #636e72;
+    padding: 10px 25px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    border: 2px solid #b2bec3;
+    cursor: not-allowed;
+    user-select: none;
+}
+
+.badge:hover {
+    background-color: #b2bec3;
+    color: white;
+}
