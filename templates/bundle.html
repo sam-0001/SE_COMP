@@ -83,7 +83,12 @@
                     <input type="email" id="user-email" placeholder="student@example.com">
                 </div>
 
-                <button id="pay-btn" class="btn btn-primary full-width" style="padding: 18px; font-size: 1.1rem;">
+                <div class="input-group" style="margin-top: 10px;">
+                    <label for="coupon-code">Have a Coupon Code?</label>
+                    <input type="text" id="coupon-code" placeholder="e.g. BFF100" style="text-transform: uppercase;">
+                </div>
+
+                <button id="pay-btn" class="btn btn-primary full-width" style="padding: 18px; font-size: 1.1rem; margin-top: 15px;">
                     🔒 Check Access / Unlock
                 </button>
                 
@@ -161,10 +166,14 @@
                 </div>`;
         }
 
-        // 5. Main Logic: Check Access -> Pay
+        // 5. Main Logic: Check Access -> Check Coupon -> Pay
         document.getElementById('pay-btn').addEventListener('click', async () => {
             const emailField = document.getElementById('user-email');
+            const couponField = document.getElementById('coupon-code'); // Get Coupon Field
+            
             const userEmail = emailField.value.trim().toLowerCase(); 
+            const couponCode = couponField ? couponField.value.trim().toUpperCase() : '';
+            
             const btn = document.getElementById('pay-btn');
 
             // Validation
@@ -175,10 +184,10 @@
                 return;
             }
 
-            btn.innerText = "Checking Access...";
+            btn.innerText = "Checking...";
             btn.disabled = true;
 
-            // A. CHECK MONGODB FOR EXISTING ACCESS
+            // A. CHECK MONGODB FOR EXISTING ACCESS (Welcome back logic)
             try {
                 const checkRes = await fetch('/check_access', {
                     method: 'POST',
@@ -188,17 +197,45 @@
                 const checkData = await checkRes.json();
 
                 if (checkData.status === 'active') {
-                    // Success! Unlock immediately without payment
                     secureToken = checkData.token;
                     renderUnlockedState();
                     alert(checkData.message);
                     return; 
                 }
-            } catch (e) {
-                console.error("Error checking access", e);
+            } catch (e) { console.error(e); }
+
+            // B. IF COUPON ENTERED -> TRY TO REDEEM
+            if (couponCode.length > 0) {
+                btn.innerText = "Applying Coupon...";
+                try {
+                    const couponRes = await fetch('/redeem_coupon', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            coupon_code: couponCode, 
+                            email: userEmail, 
+                            bundle_id: bundleId 
+                        })
+                    });
+                    const couponData = await couponRes.json();
+
+                    if (couponData.status === 'success') {
+                        // COUPON VALID! UNLOCK IMMEDIATELY
+                        secureToken = couponData.token;
+                        renderUnlockedState();
+                        alert(couponData.message);
+                        return; // Stop here, do not open Razorpay
+                    } else {
+                        // Invalid Coupon -> Tell user, but continue to payment? 
+                        alert("❌ " + couponData.message);
+                        btn.innerText = "🔒 Check Access / Unlock";
+                        btn.disabled = false;
+                        return;
+                    }
+                } catch(e) { console.error(e); }
             }
 
-            // B. START PAYMENT (If no access found)
+            // C. START RAZORPAY PAYMENT (If no coupon or empty coupon)
             btn.innerText = "Processing Order...";
 
             // Create Order on Backend
@@ -216,7 +253,6 @@
                 return; 
             }
 
-            // Open Razorpay Popup
             const options = {
                 "key": orderData.key_id,
                 "amount": orderData.amount,
@@ -224,11 +260,10 @@
                 "name": "ExamSuccess Notes",
                 "description": "Premium Notes Bundle",
                 "order_id": orderData.order_id,
-                "prefill": { "email": userEmail }, // Auto-fill email
+                "prefill": { "email": userEmail },
                 "handler": async function (response) {
                     btn.innerText = "Verifying...";
                     
-                    // Verify Payment & Save to MongoDB
                     const verifyRes = await fetch('/verify_payment', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
