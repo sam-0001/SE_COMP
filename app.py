@@ -49,6 +49,11 @@ BUNDLES = {
     }
 }
 
+# --- COUPON CODES ---
+COUPONS = {
+    "BFF100": 100  # Code : Discount %
+}
+
 # --- 2. DATABASE CONNECTION ---
 try:
     # Connect to MongoDB
@@ -213,6 +218,39 @@ def download_file(file_id):
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+# --- NEW ROUTE: Redeem Coupon ---
+@app.route('/redeem_coupon', methods=['POST'])
+def redeem_coupon():
+    data = request.json
+    code = data.get('coupon_code', '').strip().upper()
+    email = data.get('email')
+    bundle_id = data.get('bundle_id')
+
+    # 1. Check if Coupon Exists & is 100% Off
+    if code in COUPONS and COUPONS[code] == 100:
+        
+        # 2. Generate Token (Bypass Payment)
+        token = create_access_token(bundle_id)
+        
+        # 3. Save to MongoDB (So they get 2-hour access)
+        if access_collection is not None:
+            access_collection.insert_one({
+                "email": email,
+                "bundle_id": bundle_id,
+                "token": token,
+                "created_at": datetime.utcnow(),
+                "payment_method": "COUPON",
+                "coupon_used": code
+            })
+            
+        return jsonify({
+            'status': 'success', 
+            'token': token, 
+            'message': 'Coupon Applied! Free Access Granted.'
+        })
+
+    return jsonify({'status': 'invalid', 'message': 'Invalid or Expired Coupon.'})
 
 if __name__ == '__main__':
     app.run(debug=True)
