@@ -30,7 +30,7 @@ RAZORPAY_SECRET = os.getenv('RAZORPAY_SECRET')
 SERVICE_ACCOUNT_FILE = 'gdrive_service_account.json'
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
-# Bundle Map (Bundle ID -> Drive Folder ID)
+# Bundle Map
 BUNDLES = {
     "ds": {
         "name": "Data Structures (DS)",
@@ -51,24 +51,27 @@ BUNDLES = {
 
 # --- COUPON CODES ---
 COUPONS = {
-    "NEW100": 100 ,
-    "PRATIK100": 100  # Code : Discount %
+    "NEW100": 100,
+    "PRATIK100": 100
 }
 
 # --- 2. DATABASE CONNECTION ---
 try:
-    # Connect to MongoDB
     client = MongoClient(os.getenv('MONGO_URI'), tlsCAFile=certifi.where())
     db = client['notes_app']
+    
+    # Collection 1: Active Users (Temporary Access)
     access_collection = db['active_users']
-
-    # Auto-delete records after 2 hours (7200 seconds)
-    # This index is only created if it doesn't exist
     access_collection.create_index("created_at", expireAfterSeconds=7200)
-    print("✅ MongoDB Connected & Auto-Delete Rule Set!")
+    
+    # Collection 2: Loyalty List (Permanent Discount List)
+    loyalty_collection = db['loyalty']
+    
+    print("✅ MongoDB Connected & Rules Set!")
 except Exception as e:
     print(f"❌ MongoDB Error: {e}")
-    access_collection = None # Fallback if DB fails
+    access_collection = None
+    loyalty_collection = None
 
 # --- 3. HELPER FUNCTIONS ---
 
@@ -99,7 +102,6 @@ def index():
 
 @app.route('/bundle.html')
 def bundle():
-    # Pass product details to HTML for server-side rendering
     bundle_id = request.args.get('id', 'ds')
     product = BUNDLES.get(bundle_id)
     return render_template('bundle.html', product=product, bundle_id=bundle_id)
@@ -116,17 +118,16 @@ def api_get_files(bundle_id):
     results = service.files().list(q=query, fields="files(id, name)").execute()
     return jsonify({"files": results.get('files', [])})
 
-# --- NEW: Check MongoDB for existing access ---
+# --- CHECK ACCESS ---
 @app.route('/check_access', methods=['POST'])
 def check_access():
     if access_collection is None:
-        return jsonify({'status': 'expired'}) # If DB is down, force payment
+        return jsonify({'status': 'expired'})
 
     data = request.json
-    email = data.get('email')
+    email = data.get('email', '').lower().strip()
     bundle_id = data.get('bundle_id')
 
-    # Find active user
     user = access_collection.find_one({
         "email": email,
         "bundle_id": bundle_id
@@ -141,32 +142,46 @@ def check_access():
     else:
         return jsonify({'status': 'expired'})
 
+# --- CREATE ORDER (WITH LOYALTY CHECK) ---
 @app.route('/create_order', methods=['POST'])
 def create_order():
     data = request.json
     bundle_id = data.get('bundle_id')
-    bundle = BUNDLES.get(bundle_id)
+    # Get user email to check loyalty
+    user_email = data.get('email', '').lower().strip()
     
+    bundle = BUNDLES.get(bundle_id)
     if not bundle: return jsonify({'error': 'Invalid Bundle'}), 400
+
+    final_price = bundle['price']
+    
+    # === LOYALTY DISCOUNT LOGIC ===
+    if loyalty_collection is not None:
+        # Check if this email exists in our loyalty database
+        is_loyal = loyalty_collection.find_one({"email": user_email})
+        
+        if is_loyal:
+            final_price = int(final_price * 0.5) # Apply 50% Discount
+            print(f"🎉 Loyalty Discount Applied for {user_email}")
+    # ==============================
 
     razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_SECRET))
     order = razorpay_client.order.create({
-        'amount': bundle['price'],
+        'amount': final_price,
         'currency': 'INR',
         'payment_capture': '1'
     })
     
     return jsonify({
         'order_id': order['id'], 
-        'key_id': RAZORPAY_KEY_ID,
-        'amount': bundle['price']
+        'key_id': RAZORPAY_KEY_ID, 
+        'amount': final_price
     })
 
 @app.route('/verify_payment', methods=['POST'])
 def verify_payment():
     data = request.json
     try:
-        # 1. Verify Signature
         client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_SECRET))
         client.utility.verify_payment_signature({
             'razorpay_order_id': data['razorpay_order_id'],
@@ -174,16 +189,14 @@ def verify_payment():
             'razorpay_signature': data['razorpay_signature']
         })
         
-        # 2. Generate Token
         token = create_access_token(data['bundle_id'])
         
-        # 3. SAVE TO MONGODB (If DB is connected)
         if access_collection is not None:
             access_collection.insert_one({
                 "email": data.get('user_email'),
                 "bundle_id": data['bundle_id'],
                 "token": token,
-                "created_at": datetime.utcnow() # Used for 2hr auto-delete
+                "created_at": datetime.utcnow()
             })
         
         return jsonify({'status': 'success', 'token': token})
@@ -215,12 +228,11 @@ def download_file(file_id):
     except Exception as e:
         return f"Error: {e}", 500
     
-# --- ROUTE: About & Policy Page ---
 @app.route('/about')
 def about():
     return render_template('about.html')
 
-# --- NEW ROUTE: Redeem Coupon ---
+# --- REDEEM COUPON ---
 @app.route('/redeem_coupon', methods=['POST'])
 def redeem_coupon():
     data = request.json
@@ -228,13 +240,9 @@ def redeem_coupon():
     email = data.get('email')
     bundle_id = data.get('bundle_id')
 
-    # 1. Check if Coupon Exists & is 100% Off
     if code in COUPONS and COUPONS[code] == 100:
-        
-        # 2. Generate Token (Bypass Payment)
         token = create_access_token(bundle_id)
         
-        # 3. Save to MongoDB (So they get 2-hour access)
         if access_collection is not None:
             access_collection.insert_one({
                 "email": email,
@@ -252,6 +260,25 @@ def redeem_coupon():
         })
 
     return jsonify({'status': 'invalid', 'message': 'Invalid or Expired Coupon.'})
+
+# --- SECRET ROUTE: ADD LOYAL USER ---
+# Visit: /add_loyal?email=friend@gmail.com&pw=1234
+@app.route('/add_loyal')
+def add_loyal():
+    if loyalty_collection is None: return "DB Error"
+    
+    email = request.args.get('email')
+    password = request.args.get('pw')
+    
+    if not email or password != '1234': # Change '1234' to your own secret
+        return "❌ Access Denied"
+    
+    loyalty_collection.update_one(
+        {"email": email.lower().strip()}, 
+        {"$set": {"email": email.lower().strip()}}, 
+        upsert=True
+    )
+    return f"✅ Added {email} to Loyalty List! They will get 50% off."
 
 if __name__ == '__main__':
     app.run(debug=True)
