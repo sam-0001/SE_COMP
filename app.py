@@ -51,8 +51,8 @@ BUNDLES = {
 
 # --- COUPON CODES ---
 COUPONS = {
-    "NEW100": 100,
-    "PRATIK100": 100
+    #"NEW100": 100,
+    #"PRATIK100": 100
 }
 
 # --- 2. DATABASE CONNECTION ---
