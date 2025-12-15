@@ -85,7 +85,7 @@
 
                 <div class="input-group" style="margin-top: 10px;">
                     <label for="coupon-code">Have a Coupon Code?</label>
-                    <input type="text" id="coupon-code" placeholder="Apply Coupon" style="text-transform: uppercase;">
+                    <input type="text" id="coupon-code" placeholder="e.g. BFF100" style="text-transform: uppercase;">
                 </div>
 
                 <button id="pay-btn" class="btn btn-primary full-width" style="padding: 18px; font-size: 1.1rem; margin-top: 15px;">
@@ -169,7 +169,7 @@
         // 5. Main Logic: Check Access -> Check Coupon -> Pay
         document.getElementById('pay-btn').addEventListener('click', async () => {
             const emailField = document.getElementById('user-email');
-            const couponField = document.getElementById('coupon-code'); // Get Coupon Field
+            const couponField = document.getElementById('coupon-code'); 
             
             const userEmail = emailField.value.trim().toLowerCase(); 
             const couponCode = couponField ? couponField.value.trim().toUpperCase() : '';
@@ -187,7 +187,7 @@
             btn.innerText = "Checking...";
             btn.disabled = true;
 
-            // A. CHECK MONGODB FOR EXISTING ACCESS (Welcome back logic)
+            // A. CHECK MONGODB FOR EXISTING ACCESS
             try {
                 const checkRes = await fetch('/check_access', {
                     method: 'POST',
@@ -220,13 +220,11 @@
                     const couponData = await couponRes.json();
 
                     if (couponData.status === 'success') {
-                        // COUPON VALID! UNLOCK IMMEDIATELY
                         secureToken = couponData.token;
                         renderUnlockedState();
                         alert(couponData.message);
-                        return; // Stop here, do not open Razorpay
+                        return; 
                     } else {
-                        // Invalid Coupon -> Tell user, but continue to payment? 
                         alert("❌ " + couponData.message);
                         btn.innerText = "🔒 Check Access / Unlock";
                         btn.disabled = false;
@@ -235,14 +233,17 @@
                 } catch(e) { console.error(e); }
             }
 
-            // C. START RAZORPAY PAYMENT (If no coupon or empty coupon)
+            // C. START RAZORPAY PAYMENT (FIXED!)
             btn.innerText = "Processing Order...";
 
-            // Create Order on Backend
+            // Create Order on Backend (NOW SENDS EMAIL!)
             const res = await fetch('/create_order', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ bundle_id: bundleId })
+                body: JSON.stringify({ 
+                    bundle_id: bundleId,
+                    email: userEmail  // <--- THIS WAS MISSING, NOW ADDED!
+                })
             });
             const orderData = await res.json();
 
