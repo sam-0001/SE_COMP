@@ -39,8 +39,8 @@ BUNDLES = {
     },
     "oop_cg": {
         "name": "OOP & CG",
-        "folder_id": "REPLACE_WITH_OOP_FOLDER_ID", 
-        "price": 4900
+        "folder_id": "1367AQPrax2YYrMk4Rz-9AVt8Qgy1lSSt", 
+        "price": 1900
     },
     "os": {
         "name": "Operating Systems",
