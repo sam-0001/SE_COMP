@@ -44,9 +44,24 @@ BUNDLES = {
     },
     "os": {
         "name": "Operating Systems",
-        "folder_id": "REPLACE_WITH_OS_FOLDER_ID", 
-        "price": 4900
-    }
+        "folder_id": "1kX5qgFguKDAfonJcPwwIUaDzwP1bi7by", 
+        "price": 1900
+    },
+    "deld": {
+        "name": "DELD",
+        "folder_id": "1mbyzQ8yyCxYMPbLRUPIHM_2Uvje4pBbd", 
+        "price": 1900
+    },
+    "DM": {
+        "name": "Digital Marketing",
+        "folder_id": "16L0YVmB5vxaQhaXOCQ1grZasu5sbICNZ", 
+        "price": 1900
+    },
+    "uhvpe": {
+        "name": "uhvpe",
+        "folder_id": "1sNI4QX_7dA-pgycAQ0tGRdiloi8OoaTY", 
+        "price": 1900
+    },
 }
 
 # --- COUPON CODES ---
