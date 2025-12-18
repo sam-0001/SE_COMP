@@ -6,7 +6,7 @@
     <title>Bundle Details | ExamSuccess</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="icon" href="../static/image.png">
+    <link rel="icon" href="{{ url_for('static', filename='image.png') }}">
     <style>
         /* Styles for download buttons and inputs */
         .download-btn {
@@ -207,7 +207,7 @@
 
             // B. IF COUPON ENTERED -> TRY TO REDEEM
             if (couponCode.length > 0) {
-                btn.innerText = "Applying Coupon...";
+                btn.innerText = "Verifying Coupon...";
                 try {
                     const couponRes = await fetch('/redeem_coupon', {
                         method: 'POST',
@@ -220,30 +220,40 @@
                     });
                     const couponData = await couponRes.json();
 
+                    // CASE 1: 100% OFF (Free)
                     if (couponData.status === 'success') {
                         secureToken = couponData.token;
                         renderUnlockedState();
                         alert(couponData.message);
-                        return; 
-                    } else {
+                        return; // Stop here, done.
+                    } 
+                    // CASE 2: PARTIAL DISCOUNT (e.g. 10% Off)
+                    else if (couponData.status === 'partial') {
+                        // Success! Show message but DO NOT RETURN.
+                        // Let the code continue down to Razorpay.
+                        alert(couponData.message);
+                    } 
+                    // CASE 3: INVALID
+                    else {
                         alert("❌ " + couponData.message);
                         btn.innerText = "🔒 Check Access / Unlock";
                         btn.disabled = false;
-                        return;
+                        return; // Stop here, let them fix the code.
                     }
                 } catch(e) { console.error(e); }
             }
 
-            // C. START RAZORPAY PAYMENT (FIXED!)
+            // C. START RAZORPAY PAYMENT
             btn.innerText = "Processing Order...";
 
-            // Create Order on Backend (NOW SENDS EMAIL!)
+            // Create Order on Backend (Sends Email AND Coupon now!)
             const res = await fetch('/create_order', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ 
                     bundle_id: bundleId,
-                    email: userEmail  // <--- THIS WAS MISSING, NOW ADDED!
+                    email: userEmail,
+                    coupon_code: couponCode 
                 })
             });
             const orderData = await res.json();
