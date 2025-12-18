@@ -66,7 +66,7 @@ BUNDLES = {
 
 # --- COUPON CODES ---
 COUPONS = {
-    #"NEW100": 100,
+    "ES10": 10,
     #"PRATIK100": 100
 }
 
