@@ -66,8 +66,8 @@ BUNDLES = {
 
 # --- COUPON CODES ---
 COUPONS = {
-    "ES10": 10,
-    #"PRATIK100": 100
+    "ES10": 10,      # 10% Off
+    #"BFF100": 100    # 100% Off (Free)
 }
 
 # --- 2. DATABASE CONNECTION ---
@@ -157,31 +157,77 @@ def check_access():
     else:
         return jsonify({'status': 'expired'})
 
-# --- CREATE ORDER (WITH LOYALTY CHECK) ---
+# --- REDEEM COUPON (Checks Validity Only) ---
+@app.route('/redeem_coupon', methods=['POST'])
+def redeem_coupon():
+    data = request.json
+    code = data.get('coupon_code', '').strip().upper()
+    email = data.get('email')
+    bundle_id = data.get('bundle_id')
+
+    if code in COUPONS:
+        discount = COUPONS[code]
+        
+        # Scenario A: 100% Off (Free Access)
+        if discount == 100:
+            token = create_access_token(bundle_id)
+            if access_collection is not None:
+                access_collection.insert_one({
+                    "email": email,
+                    "bundle_id": bundle_id,
+                    "token": token,
+                    "created_at": datetime.utcnow(),
+                    "payment_method": "COUPON",
+                    "coupon_used": code
+                })
+            return jsonify({
+                'status': 'success', 
+                'token': token, 
+                'message': 'Coupon Applied! Free Access Granted.'
+            })
+            
+        # Scenario B: Partial Discount (e.g., 10% Off)
+        else:
+            return jsonify({
+                'status': 'partial', 
+                'message': f'✅ Coupon Valid! {discount}% Discount Applied.'
+            })
+
+    return jsonify({'status': 'invalid', 'message': 'Invalid or Expired Coupon.'})
+
+# --- CREATE ORDER (Calculates Price for Razorpay) ---
 @app.route('/create_order', methods=['POST'])
 def create_order():
     data = request.json
     bundle_id = data.get('bundle_id')
-    # Get user email to check loyalty
     user_email = data.get('email', '').lower().strip()
+    coupon_code = data.get('coupon_code', '').upper().strip()
     
     bundle = BUNDLES.get(bundle_id)
     if not bundle: return jsonify({'error': 'Invalid Bundle'}), 400
 
     final_price = bundle['price']
     
-    # === LOYALTY DISCOUNT LOGIC ===
+    # 1. Check Loyalty (50% Off)
     if loyalty_collection is not None:
-        # Check if this email exists in our loyalty database
         is_loyal = loyalty_collection.find_one({"email": user_email})
-        
         if is_loyal:
-            final_price = int(final_price * 0.5) # Apply 50% Discount
+            final_price = int(final_price * 0.5) 
             print(f"🎉 Loyalty Discount Applied for {user_email}")
-    # ==============================
 
-    razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_SECRET))
-    order = razorpay_client.order.create({
+    # 2. Check Coupon (Partial Discount)
+    # Note: If user is loyal (50% off) AND uses a 10% coupon, 
+    # the 10% is applied to the already discounted price.
+    if coupon_code in COUPONS:
+        discount_percent = COUPONS[coupon_code]
+        if discount_percent < 100:
+            multiplier = (100 - discount_percent) / 100
+            final_price = int(final_price * multiplier)
+            print(f"🎟️ Coupon {coupon_code} applied: {discount_percent}% Off")
+
+    # Create Razorpay Order
+    client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_SECRET))
+    order = client.order.create({
         'amount': final_price,
         'currency': 'INR',
         'payment_capture': '1'
@@ -247,35 +293,6 @@ def download_file(file_id):
 def about():
     return render_template('about.html')
 
-# --- REDEEM COUPON ---
-@app.route('/redeem_coupon', methods=['POST'])
-def redeem_coupon():
-    data = request.json
-    code = data.get('coupon_code', '').strip().upper()
-    email = data.get('email')
-    bundle_id = data.get('bundle_id')
-
-    if code in COUPONS and COUPONS[code] == 100:
-        token = create_access_token(bundle_id)
-        
-        if access_collection is not None:
-            access_collection.insert_one({
-                "email": email,
-                "bundle_id": bundle_id,
-                "token": token,
-                "created_at": datetime.utcnow(),
-                "payment_method": "COUPON",
-                "coupon_used": code
-            })
-            
-        return jsonify({
-            'status': 'success', 
-            'token': token, 
-            'message': 'Coupon Applied! Free Access Granted.'
-        })
-
-    return jsonify({'status': 'invalid', 'message': 'Invalid or Expired Coupon.'})
-
 # --- SECRET ROUTE: ADD LOYAL USER ---
 # Visit: /add_loyal?email=friend@gmail.com&pw=1234
 @app.route('/add_loyal')
@@ -285,7 +302,7 @@ def add_loyal():
     email = request.args.get('email')
     password = request.args.get('pw')
     
-    if not email or password != '1234': # Change '1234' to your own secret
+    if not email or password != '1234': 
         return "❌ Access Denied"
     
     loyalty_collection.update_one(
