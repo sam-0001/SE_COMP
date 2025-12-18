@@ -66,7 +66,7 @@ BUNDLES = {
 
 # --- COUPON CODES ---
 COUPONS = {
-    "ES10": 10,      # 10% Off
+    "ES10": 10      # 10% Off
     #"BFF100": 100    # 100% Off (Free)
 }
 
