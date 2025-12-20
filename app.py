@@ -50,7 +50,7 @@ BUNDLES = {
     "deld": {
         "name": "DELD",
         "folder_id": "1Ch0gjZ1r4AUYsqzEeOsu_V0Yz8Yc56_W", 
-        "price": 1900
+        "price": 2900
     },
     "DM": {
         "name": "Digital Marketing",
@@ -66,7 +66,8 @@ BUNDLES = {
 
 # --- COUPON CODES ---
 COUPONS = {
-    "ES10": 10      # 10% Off
+    "ES10": 10,      # 10% Off
+    "ES25": 25
     #"BFF100": 100    # 100% Off (Free)
 }
 
