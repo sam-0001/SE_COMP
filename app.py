@@ -49,7 +49,7 @@ BUNDLES = {
     },
     "deld": {
         "name": "DELD",
-        "folder_id": "1mbyzQ8yyCxYMPbLRUPIHM_2Uvje4pBbd", 
+        "folder_id": "1Ch0gjZ1r4AUYsqzEeOsu_V0Yz8Yc56_W", 
         "price": 1900
     },
     "DM": {
