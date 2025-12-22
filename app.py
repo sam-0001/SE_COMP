@@ -14,10 +14,24 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
+# --- NEW IMPORT FOR RENDER CUSTOM DOMAIN FIX ---
+from werkzeug.middleware.proxy_fix import ProxyFix 
+
 # 1. LOAD CONFIGURATION
 load_dotenv()
 
 app = Flask(__name__)
+
+# --- NEW CONFIG FOR RENDER HTTPS FIX ---
+# This tells Flask to trust Render's SSL headers so redirects work correctly
+app.wsgi_app = ProxyFix(
+    app.wsgi_app,
+    x_for=1, 
+    x_proto=1, 
+    x_host=1, 
+    x_prefix=1
+)
+# ---------------------------------------
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev_key')
 app.config['JWT_SECRET'] = os.getenv('JWT_SECRET', 'dev_jwt_key')
@@ -67,8 +81,8 @@ BUNDLES = {
 # --- COUPON CODES ---
 COUPONS = {
     "ES10": 10,      # 10% Off
-    "ES25": 25
-    #"BFF100": 100    # 100% Off (Free)
+    "ES25": 25,      # 25% Off
+    "BFF100": 100    # 100% Off (Free)
 }
 
 # --- 2. DATABASE CONNECTION ---
@@ -199,46 +213,57 @@ def redeem_coupon():
 # --- CREATE ORDER (Calculates Price for Razorpay) ---
 @app.route('/create_order', methods=['POST'])
 def create_order():
-    data = request.json
-    bundle_id = data.get('bundle_id')
-    user_email = data.get('email', '').lower().strip()
-    coupon_code = data.get('coupon_code', '').upper().strip()
-    
-    bundle = BUNDLES.get(bundle_id)
-    if not bundle: return jsonify({'error': 'Invalid Bundle'}), 400
+    try:
+        data = request.json
+        if not data: return jsonify({'error': 'No data received'}), 400
 
-    final_price = bundle['price']
-    
-    # 1. Check Loyalty (50% Off)
-    if loyalty_collection is not None:
-        is_loyal = loyalty_collection.find_one({"email": user_email})
-        if is_loyal:
-            final_price = int(final_price * 0.5) 
-            print(f"🎉 Loyalty Discount Applied for {user_email}")
+        bundle_id = data.get('bundle_id')
+        user_email = data.get('email', '').lower().strip()
+        coupon_code = data.get('coupon_code', '').upper().strip()
+        
+        bundle = BUNDLES.get(bundle_id)
+        if not bundle: return jsonify({'error': 'Invalid Bundle'}), 400
 
-    # 2. Check Coupon (Partial Discount)
-    # Note: If user is loyal (50% off) AND uses a 10% coupon, 
-    # the 10% is applied to the already discounted price.
-    if coupon_code in COUPONS:
-        discount_percent = COUPONS[coupon_code]
-        if discount_percent < 100:
-            multiplier = (100 - discount_percent) / 100
-            final_price = int(final_price * multiplier)
-            print(f"🎟️ Coupon {coupon_code} applied: {discount_percent}% Off")
+        final_price = bundle['price']
+        
+        # 1. Check Loyalty (50% Off)
+        if loyalty_collection is not None:
+            is_loyal = loyalty_collection.find_one({"email": user_email})
+            if is_loyal:
+                final_price = int(final_price * 0.5) 
+                print(f"🎉 Loyalty Discount Applied for {user_email}")
 
-    # Create Razorpay Order
-    client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_SECRET))
-    order = client.order.create({
-        'amount': final_price,
-        'currency': 'INR',
-        'payment_capture': '1'
-    })
-    
-    return jsonify({
-        'order_id': order['id'], 
-        'key_id': RAZORPAY_KEY_ID, 
-        'amount': final_price
-    })
+        # 2. Check Coupon (Partial Discount)
+        if coupon_code in COUPONS:
+            discount_percent = COUPONS[coupon_code]
+            if discount_percent < 100:
+                multiplier = (100 - discount_percent) / 100
+                final_price = int(final_price * multiplier)
+                print(f"🎟️ Coupon {coupon_code} applied: {discount_percent}% Off")
+
+        # Guard: Minimum Razorpay Amount
+        if final_price < 100: final_price = 100
+
+        # Create Razorpay Order
+        if not RAZORPAY_KEY_ID or not RAZORPAY_SECRET:
+             return jsonify({'error': 'Razorpay Keys Missing on Server'}), 500
+
+        client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_SECRET))
+        order = client.order.create({
+            'amount': final_price,
+            'currency': 'INR',
+            'payment_capture': '1'
+        })
+        
+        return jsonify({
+            'order_id': order['id'], 
+            'key_id': RAZORPAY_KEY_ID, 
+            'amount': final_price
+        })
+
+    except Exception as e:
+        print(f"❌ Server Error in create_order: {str(e)}")
+        return jsonify({'error': f"Server Error: {str(e)}"}), 500
 
 @app.route('/verify_payment', methods=['POST'])
 def verify_payment():
